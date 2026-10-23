@@ -2,24 +2,21 @@
 import asyncio
 import os
 import aiohttp
+import base64
 from threading import Thread
 from flask import Flask
 from rubpy import Client
 from rubpy.types import Update
 
-# ==========================================
-# ⚙️ تنظیمات اصلی
-# ==========================================
 SESSION_NAME = "my_userbot_session"
 MAJID_API_TOKEN = "*9mnlrt7c0r4y55h:i16MIfO7j8UkrfuReXob*"
-
-# ⚠️ این دو مقدار را بعدا باید پیدا کنی و اینجا بذاری
 GROUP_GUID = "b0..."  
 CALL_GUID = "c0..."   
 
-# ==========================================
-# 🌐 وب‌سرور کوچک برای زنده نگه داشتن ربات در Render
-# ==========================================
+if os.environ.get("SESSION_B64"):
+    with open(f"{SESSION_NAME}.rp", "wb") as f:
+        f.write(base64.b64decode(os.environ.get("SESSION_B64")))
+
 web_app = Flask(__name__)
 
 @web_app.route('/')
@@ -30,9 +27,6 @@ def run_web():
     port = int(os.environ.get("PORT", 8080))
     web_app.run(host='0.0.0.0', port=port)
 
-# ==========================================
-# 🎵 کلاس مدیریت پخش
-# ==========================================
 class MusicPlayer:
     def __init__(self, client: Client):
         self.client = client
@@ -58,9 +52,6 @@ class MusicPlayer:
         self.is_playing = False
         return "⏹️ پخش متوقف شد."
 
-# ==========================================
-# 🤖 راه‌اندازی کلاینت
-# ==========================================
 app = Client(SESSION_NAME)
 player = MusicPlayer(app)
 
@@ -69,7 +60,6 @@ async def handle_messages(update: Update):
     msg = update.new_message
     if not msg: return
     
-    # دستور مخفی برای پیدا کردن GROUP_GUID
     if msg.text == "راهنما_شناسه":
         print("\n" + "="*40)
         print(f"✅ شناسه گروه (GROUP_GUID): {msg.object_guid}")
@@ -126,19 +116,7 @@ async def handle_messages(update: Update):
             result = await player.stop()
             await msg.reply(result)
 
-@app.on_update()
-async def catch_call_updates(update: Update):
-    upd_type = str(getattr(update, 'type', ''))
-    if 'voice' in upd_type.lower() or 'call' in upd_type.lower():
-        print("\n📞 آپدیت کال:")
-        print(update)
-        print("👆 دنبال کد c0... بگرد\n")
-
-# ==========================================
-# 🚀 اجرا
-# ==========================================
 if __name__ == "__main__":
-    # اجرای وب‌سرور در یک ترد جداگانه
     Thread(target=run_web).start()
     print("✅ وب‌سرور و ربات فعال شدند...")
     app.run()
