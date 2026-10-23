@@ -8,15 +8,19 @@ from flask import Flask
 from rubpy import Client
 from rubpy.types import Update
 
+# ==========================================
+# ⚙️ تنظیمات اصلی
+# ==========================================
 SESSION_NAME = "my_userbot_session"
 MAJID_API_TOKEN = "*9mnlrt7c0r4y55h:i16MIfO7j8UkrfuReXob*"
+
+# ⚠️ این دو خط رو بعدا باید تغییر بدی
 GROUP_GUID = "b0..."  
 CALL_GUID = "c0..."   
 
-if os.environ.get("SESSION_B64"):
-    with open(f"{SESSION_NAME}.rp", "wb") as f:
-        f.write(base64.b64decode(os.environ.get("SESSION_B64")))
-
+# ==========================================
+# 🌐 وب‌سرور برای رندر
+# ==========================================
 web_app = Flask(__name__)
 
 @web_app.route('/')
@@ -27,6 +31,9 @@ def run_web():
     port = int(os.environ.get("PORT", 8080))
     web_app.run(host='0.0.0.0', port=port)
 
+# ==========================================
+# 🎵 کلاس مدیریت پخش
+# ==========================================
 class MusicPlayer:
     def __init__(self, client: Client):
         self.client = client
@@ -52,20 +59,35 @@ class MusicPlayer:
         self.is_playing = False
         return "⏹️ پخش متوقف شد."
 
+# ==========================================
+# 🤖 راه‌اندازی کلاینت
+# ==========================================
+if os.environ.get("SESSION_B64"):
+    with open(f"{SESSION_NAME}.rp", "wb") as f:
+        f.write(base64.b64decode(os.environ.get("SESSION_B64")))
+
 app = Client(SESSION_NAME)
 player = MusicPlayer(app)
 
+# ==========================================
+# 📩 هندلر پیام‌ها
+# ==========================================
 @app.on_message_updates()
 async def handle_messages(update: Update):
     msg = update.new_message
     if not msg: return
     
+    # 🔴 این خط رو اضافه کردم که هر پیامی میاد رو چاپ کنه
+    print(f"📩 پیام جدید دریافت شد: {msg.text} | GUID: {msg.object_guid}")
+    
+    # دستور مخفی برای پیدا کردن شناسه گروه
     if msg.text == "راهنما_شناسه":
         print("\n" + "="*40)
         print(f"✅ شناسه گروه (GROUP_GUID): {msg.object_guid}")
         print("="*40 + "\n")
         await msg.reply("شناسه گروه در لاگ‌های رندر چاپ شد ✅")
 
+    # ادامه دستورات فقط توی گروهی که GUID دادیم اجرا میشه
     if msg.object_guid == GROUP_GUID and msg.text:
         text = msg.text.strip()
 
@@ -116,6 +138,21 @@ async def handle_messages(update: Update):
             result = await player.stop()
             await msg.reply(result)
 
+# ==========================================
+# 📞 هندلر کال
+# ==========================================
+try:
+    @app.on_voice_chat_updates()
+    async def handle_voice_chat(update: Update):
+        print("\n📞 آپدیت کال دریافت شد:")
+        print(update)
+        print("👆 دنبال کدی که با c0... شروع میشه بگرد\n")
+except Exception as e:
+    print(f"⚠️ هندلر کال لود نشد: {e}")
+
+# ==========================================
+# 🚀 اجرا
+# ==========================================
 if __name__ == "__main__":
     Thread(target=run_web).start()
     print("✅ وب‌سرور و ربات فعال شدند...")
